@@ -72,6 +72,21 @@
         "xstring": "cpp",
         "xtr1common": "cpp",
         "xtree": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "filesystem": "cpp",
+        "fstream": "cpp",
+        "any": "cpp",
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "csignal": "cpp",
+        "cstdarg": "cpp",
+        "future": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "regex": "cpp",
+        "stack": "cpp",
+        "unordered_set": "cpp",
+        "valarray": "cpp",
+        "variant": "cpp"
     }
 }
