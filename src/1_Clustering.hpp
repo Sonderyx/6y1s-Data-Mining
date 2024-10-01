@@ -56,7 +56,7 @@ vector<vector<double>> initRandCenters(int k, int dimensions) {
  *
  * @param centers The centers of the clusters
  */
-void printCenters(const vector<vector<double>>& centers) {
+void logCentroids(const vector<vector<double>>& centers) {
     for (size_t i = 0; i < centers.size(); ++i) {
         // Create an output stream to build the string
         std::ostringstream center_stream;
@@ -147,7 +147,7 @@ void segmentImageKMeans(Mat& src, Mat& dst, int k, int max_iterations) {
         // Print the cluster centers after each iteration
         logger.info("Iteration {}:", (iteration + 1));
         // logger.info("Iteration {}: ┐", iteration + 1);
-        printCenters(centers);
+        logCentroids(centers);
 
         iteration++;
     }
@@ -169,8 +169,6 @@ void segmentImageKMeans(Mat& src, Mat& dst, int k, int max_iterations) {
  * @param max_iterations The maximum number of iterations to run the algorithm
  */
 void lab1_Clustering(Mat& img_bgr) {
-    // Initialize the logger
-    init_logger();
     logger.info("Lab 1: K-Means Clustering");
     string output_path = "output img/Lab 1 clustering/";
 

@@ -1,14 +1,9 @@
-// #define WIN32_LEAN_AND_MEAN
-// #define _HAS_STD_BYTE 0
-// #include <Windows.h>
+#include "logger.hpp"
 #include "1_Clustering.hpp"
 #include "2_Mahalanobis.hpp"
-#include "logger.hpp"
-// #include <nlohmann/json.hpp>
 
 using namespace std;
 using namespace cv;
-// using namespace spdlog;
 
 int main() {
     try {
@@ -41,7 +36,6 @@ int main() {
     catch (const std::exception& e) {
         logger.error(e.what());
         spdlog::shutdown();
-        // spdlog::error(e.what());
         return 1;
     }
 }
