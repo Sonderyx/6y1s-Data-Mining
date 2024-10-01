@@ -1,4 +1,8 @@
+// #define WIN32_LEAN_AND_MEAN
+// #define _HAS_STD_BYTE 0
+// #include <Windows.h>
 #include "1_Clustering.hpp"
+#include "2_Mahalanobis.hpp"
 #include "logger.hpp"
 // #include <nlohmann/json.hpp>
 
@@ -10,8 +14,8 @@ int main() {
     try {
         // string image_path = "../../resources/img/Orion.png";
         // string image_path = "../../resources/img/Shrek.png";
-        // string image_path = "../../resources/img/Lena 21.png";
-        string image_path = "../../resources/img/Spirit.jpg";
+        string image_path = "../../resources/img/Lena 21.png";
+        // string image_path = "../../resources/img/Spirit.jpg";
         // string image_path = "../../resources/img/Lena 70.jpg";
         // string image_path = "../../resources/img/Berserk.jpg";
         // string image_path = "../../resources/img/Berserk 2.jpg";
@@ -24,10 +28,11 @@ int main() {
         // string image_path = "../../resources/img/test.jpg";
         // string image_path = "../../resources/img/Anime.jpg";
 
-        // init_logger();
+        init_logger();
         Mat img_bgr = imread(image_path);
 
-        lab1_Clustering(img_bgr);
+        // lab1_Clustering(img_bgr);
+        lab2_Mahalanobis();
 
         spdlog::shutdown();
         return 0;
@@ -39,7 +44,4 @@ int main() {
         // spdlog::error(e.what());
         return 1;
     }
-    // final {
-
-    // }
 }

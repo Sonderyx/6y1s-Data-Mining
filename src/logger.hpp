@@ -13,15 +13,14 @@ inline spdlog::logger logger(
      std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/app.log", false)}
 );
 
-// Функция для инициализации логгера
 /**
- * @brief Инициализирует логгер
+ * @brief Инициализиация логгера
  *
  * @details
  * - Устанавливает шаблон вывода
  * - Выводит строку из 500 символов '-'
  * - Устанавливает формат вывода логов:
- *   [%d-%m-%Y %H:%M:%S.%e] [%^%l%$] %v
+ *   [%d.%m.%Y %H:%M:%S.%e] [%^%l%$] %v
  *   - дата, месяц, год, час, минуты, секунды, миллисекунды
  *   - заглавные уровни
  *   - текст сообщения
@@ -35,7 +34,7 @@ void init_logger() {
     logger.info(print_dashes(num_dashes));
 
     // Настройка формата вывода логов
-    logger.set_pattern("[%d-%m-%Y %H:%M:%S.%e] [%^%l%$] %v");  // Заглавные уровни, время с миллисекундами
+    logger.set_pattern("[%d.%m.%Y %H:%M:%S.%e] [%^%l%$] %v");
 }
 
 #endif LOGGER_H

@@ -172,7 +172,7 @@ void lab1_Clustering(Mat& img_bgr) {
     // Initialize the logger
     init_logger();
     logger.info("Lab 1: K-Means Clustering");
-    string output_path = "output img/";
+    string output_path = "output img/Lab 1 clustering/";
 
     // Resize the image
     resize(img_bgr, img_bgr, img_bgr.size() / 2);

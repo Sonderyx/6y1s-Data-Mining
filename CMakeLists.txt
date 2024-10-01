@@ -1,46 +1,50 @@
 cmake_minimum_required(VERSION 3.15)
-project(1_Clustering)
+project(DataMining)
 
-set(CMAKE_CXX_STANDARD 17)           # Использовать стандарт C++17
-set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Требовать C++17
+# Установка параметров сборки
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_BUILD_TYPE Release)
 
-# Добавляем файлы
-file(GLOB_RECURSE source
-./src/Top.cpp
-./src/*.hpp
-)
+# Включаем детализированные логи сборки
+set(CMAKE_VERBOSE_MAKEFILE ON)
+set(FETCHCONTENT_QUIET OFF)
 
-# Подключаем модуль FetchContent
+# Подключаем FetchContent для загрузки внешних библиотек
 include(FetchContent)
 
-# FetchContent для nlohmann/json
-FetchContent_Declare(
-    json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.2 # Укажи актуальную версию
-)
-
-# FetchContent для spdlog
+# Модуль spdlog для логирования
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.11.0  # Укажи актуальную версию
+    GIT_TAG v1.14.1
+)
+FetchContent_MakeAvailable(spdlog)
+
+# Уведомление об успешной загрузке библиотек
+message(STATUS "All FetchContent dependencies were successfully built.")
+
+# Добавляем исходные файлы проекта
+file(GLOB_RECURSE source
+    ./src/Top.cpp
+    ./src/*.hpp
 )
 
-FetchContent_MakeAvailable(json spdlog)
+# Отображаем список файлов
+message(STATUS "Source files: ${source}")
 
+# Создаем исполняемый файл
 add_executable(${PROJECT_NAME} ${source})
 
-# OpenCV
-# set(OpenCV_DIR C:/work/libraries/opencv/build)
-find_package(OpenCV REQUIRED)
-
-include_directories(${OpenCV_INCLUDE_DIRS})
-
-message(STATUS "OpenCV include directories:" ${OpenCV_INCLUDE_DIRS})
-
-target_link_libraries(${PROJECT_NAME}
-${OpenCV_LIBS}
-nlohmann_json::nlohmann_json
+# Линкуем библиотеки Matplot++ и spdlog
+target_link_libraries(${PROJECT_NAME} PRIVATE
 spdlog::spdlog
 )
+
+# Подключаем OpenCV
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+message(STATUS "OpenCV include directories: ${OpenCV_INCLUDE_DIRS}")
+
+# Линкуем OpenCV библиотеки
+target_link_libraries(${PROJECT_NAME} PRIVATE ${OpenCV_LIBS})
