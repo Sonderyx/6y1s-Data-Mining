@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <string>
 #include <vector>
 #include <map>
 #include <random>
@@ -122,31 +123,31 @@ void splitData(const vector<IrisData>& dataset, map<string, vector<IrisData>>& t
 }
 
 /**
- * @brief Функция для расчета среднего вектора
+ * @brief Функция для расчета центроида
  *
  * @param[in] data Вектор структур данных, содержащих вектор признаков (features)
  * @return Вектор средних значений признаков
  */
-vector<double> calculateMean(const vector<IrisData>& data) {
+vector<double> calcCentroid(const vector<IrisData>& data) {
     // Определяем количество признаков
     int num_features = data[0].features.size();
 
     // Создаем вектор для хранения средних значений
-    vector<double> mean(num_features, 0.0);
+    vector<double> centroid(num_features, 0.0);
 
     // Проходим по каждому элементу данных (data)
     for (const auto& sample : data)
         // Проходим по каждому признаку (feature)
         for (int i = 0; i < num_features; ++i)
             // Складываем значения признака
-            mean[i] += sample.features[i];
+            centroid[i] += sample.features[i];
 
     // Делим сумму значений признака на количество элементов данных
-    for (double& val : mean)
+    for (double& val : centroid)
         val /= data.size();
 
-    // Возвращаем расчитанный средний вектор
-    return mean;
+    // Возвращаем расчитанный центроид
+    return centroid;
 }
 
 /**
@@ -178,19 +179,17 @@ void logCovarianceMatrix(const Mat& matrix) {
  * @brief Функция для вычисления ковариационной матрицы
  *
  * @param data Вектор структур данных, содержащих вектор признаков (features) и метку класса (label)
- * @param mean Вектор средних значений признаков
+ * @param centroid Вектор средних значений признаков
  * @return Матрица ковариации размером (num_features x num_features)
  */
-Mat calculateCovarianceMatrix(const vector<IrisData>& data, const vector<double>& mean) {
-    int num_features = mean.size();
+Mat calculateCovarianceMatrix(const vector<IrisData>& data, const vector<double>& centroid) {
+    int num_features = centroid.size();
     Mat covariance = Mat::zeros(num_features, num_features, CV_64F);
-
-    logger.info("Mean vector size: {}", num_features);
 
     // Проходим по каждому элементу данных
     for (const auto& sample : data) {
-        // Создаем матрицу разности между текущим элементом данных и средним вектором
-        Mat diff = Mat(sample.features) - Mat(mean);
+        // Создаем матрицу разности между текущим элементом данных и центроидом
+        Mat diff = Mat(sample.features) - Mat(centroid);
 
         // Вычисляем произведение diff на транспонированную матрицу и добавляем к матрице ковариации
         covariance += diff * diff.t();
@@ -204,7 +203,7 @@ Mat calculateCovarianceMatrix(const vector<IrisData>& data, const vector<double>
         logger.error("Covariance matrix is empty.");
     else {
         // Выводим матрицу ковариации в лог
-        logger.info("Covariance matrix for feature {}x{}:", covariance.rows, covariance.cols);
+        logger.info("Covariance matrix {}x{}:", covariance.rows, covariance.cols);
         logCovarianceMatrix(covariance);
     }
 
@@ -237,17 +236,17 @@ Mat calculateInverse(const Mat& matrix) {
 }
 
 /**
- * @brief Рассчитывает расстояние Махаланобиса между вектором признаков (sample) и средним вектором (mean)
+ * @brief Рассчитывает расстояние Махаланобиса между вектором признаков (sample) и центроидом (centroid)
  *        с учетом ковариационной матрицы (cov_inv)
  *
  * @param sample Вектор признаков
- * @param mean Средний вектор
+ * @param centroid Центроид
  * @param cov_inv Обратная ковариационная матрица
  * @return Расстояние Махаланобиса
  */
-double mahalanobisDistance(const vector<double>& sample, const vector<double>& mean, const Mat& cov_inv) {
-    // Создаем матрицу разности между вектором признаков (sample) и средним вектором (mean)
-    Mat diff = Mat(sample) - Mat(mean);
+double mahalanobisDistance(const vector<double>& sample, const vector<double>& centroid, const Mat& cov_inv) {
+    // Создаем матрицу разности между вектором признаков (sample) и центроидом (centroid)
+    Mat diff = Mat(sample) - Mat(centroid);
 
     // Если матрица разности пуста, то выводим ошибку
     if (diff.empty()) {
@@ -280,7 +279,7 @@ double mahalanobisDistance(const vector<double>& sample, const vector<double>& m
  * @brief Функция классификации по расстоянию Махаланобиса
  *
  * @param sample Вектор признаков, который нужно классифицировать
- * @param means Карта, где ключ - метка класса, а значение - средний вектор признаков для этого класса
+ * @param means Карта, где ключ - метка класса, а значение - Центроид признаков для этого класса
  * @param cov_inverses Карта, где ключ - метка класса, а значение - обратная ковариационная матрица для этого класса
  * @return Метка класса, к которому принадлежит вектор признаков
  */
@@ -289,10 +288,10 @@ string classify(const IrisData& sample, const map<string, vector<double>>& means
     double min_distance = numeric_limits<double>::max();
 
     // Проходим по каждому классу
-    for (const auto& [label, mean] : means) {
+    for (const auto& [label, centroid] : means) {
         // Рассчитываем расстояние Махаланобиса между вектором признаков (sample)
-        // и средним вектором (mean) для текущего класса
-        double distance = mahalanobisDistance(sample.features, mean, cov_inverses.at(label));
+        // и центроидом (centroid) для текущего класса
+        double distance = mahalanobisDistance(sample.features, centroid, cov_inverses.at(label));
 
         // Если расстояние меньше минимального, то обновляем минимальное расстояние
         // и запоминаем метку класса
@@ -309,32 +308,45 @@ string classify(const IrisData& sample, const map<string, vector<double>>& means
 // Основная программа
 int lab2_Mahalanobis() {
     logger.info("Lab 2: Mahalanobis clustering");
+    logger.info("Attribute Information:");
+    logger.info("   1. sepal length in cm");
+    logger.info("   2. sepal width in cm");
+    logger.info("   3. petal length in cm");
+    logger.info("   4. petal width in cm");
+    logger.info("Classes:");
+    logger.info("   1. Iris Setosa");
+    logger.info("   2. Iris Versicolour");
+    logger.info("   3. Iris Virginica");
 
     // Шаг 1. Загрузка данных
     string iris_path = "../../resources/iris db/iris.data";
     vector<IrisData> dataset = loadData(iris_path);
 
     // Шаг 2. Разделение на обучающую (90%) и тестовую (10%) выборки
+    float trained_percent = 0.9;
     map<string, vector<IrisData>> trainData, testData;
-    splitData(dataset, trainData, testData, 0.9);
+    splitData(dataset, trainData, testData, trained_percent);
 
     // Шаг 3. Оценка средних векторов и ковариационных матриц
     map<string, vector<double>> means;
     map<string, Mat> covariances, cov_inverses;
 
     for (const auto& [label, data] : trainData) {
-        means[label] = calculateMean(data);
+        means[label] = calcCentroid(data);
+        logger.info("Centroid for class {}: {}", label, fmt::format("[{}]", fmt::join(means[label], ", ")));
         Mat covariance = calculateCovarianceMatrix(data, means[label]);
         covariances[label] = covariance;
         cov_inverses[label] = covariance.inv();  // Обратная ковариационная матрица
     }
 
     // Шаг 4. Тестирование классификатора на тестовой выборке
+    logger.info("Clustering test samples...");
     int correct_predictions = 0, total_predictions = 0;
 
     for (const auto& [label, test_samples] : testData)
         for (const auto& sample : test_samples) {
             string predicted_label = classify(sample, means, cov_inverses);
+            logger.info("Test sample from class '{}' assigned to a cluster '{}'", label, predicted_label);
             if (predicted_label == label)
                 correct_predictions++;
             total_predictions++;
