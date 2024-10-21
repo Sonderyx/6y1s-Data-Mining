@@ -1,5 +1,5 @@
-#ifndef MAHALANOBIS_H
-#define MAHALANOBIS_H
+#ifndef CLASSIFICATION_H
+#define CLASSIFICATION_H
 
 #include <iostream>
 #include <fstream>
@@ -211,31 +211,6 @@ Mat calculateCovarianceMatrix(const vector<IrisData>& data, const vector<double>
 }
 
 /**
- * @brief Функция для вычисления обратной матрицы
- *
- * @param matrix Матрица, для которой необходимо вычислить обратную
- * @return Обратная матрица (матрица, умноженная на которую,
- *          даст единичную матрицу)
- */
-Mat calculateInverse(const Mat& matrix) {
-    if (matrix.empty()) {
-        logger.error("Matrix is empty, cannot calculate inverse.");
-        return Mat();
-    }
-
-    Mat inv_matrix = matrix.inv();
-
-    if (inv_matrix.empty())
-        // Если матрица не может быть обращена, то выводим ошибку
-        logger.error("Inversion of the matrix failed.");
-    else
-        // Если матрица может быть обращена, то выводим информацию о размере полученной матрицы
-        logger.info("Matrix inversion successful. Size: {}x{}", inv_matrix.rows, inv_matrix.cols);
-
-    return inv_matrix;
-}
-
-/**
  * @brief Рассчитывает расстояние Махаланобиса между вектором признаков (sample) и центроидом (centroid)
  *        с учетом ковариационной матрицы (cov_inv)
  *
@@ -306,8 +281,8 @@ string classify(const IrisData& sample, const map<string, vector<double>>& means
 }
 
 // Основная программа
-int lab2_Mahalanobis() {
-    logger.info("Lab 2: Mahalanobis clustering");
+int lab4_Classification() {
+    logger.info("Lab 4: Mahalanobis Classification.");
     logger.info("Attribute Information:");
     logger.info("   1. sepal length in cm");
     logger.info("   2. sepal width in cm");
@@ -340,13 +315,13 @@ int lab2_Mahalanobis() {
     }
 
     // Шаг 4. Тестирование классификатора на тестовой выборке
-    logger.info("Clustering test samples...");
+    logger.info("Classifying test samples...");
     int correct_predictions = 0, total_predictions = 0;
 
     for (const auto& [label, test_samples] : testData)
         for (const auto& sample : test_samples) {
             string predicted_label = classify(sample, means, cov_inverses);
-            logger.info("Test sample from class '{}' assigned to a cluster '{}'", label, predicted_label);
+            logger.info("Test sample from class '{}' assigned to a class '{}'", label, predicted_label);
             if (predicted_label == label)
                 correct_predictions++;
             total_predictions++;
@@ -359,4 +334,4 @@ int lab2_Mahalanobis() {
     return 0;
 }
 
-#endif MAHALANOBIS_H
+#endif CLASSIFICATION_H

@@ -1,6 +1,6 @@
 #include "logger.hpp"
 #include "1_Clustering.hpp"
-#include "2_Mahalanobis.hpp"
+#include "4_Classification.hpp"
 
 using namespace std;
 using namespace cv;
@@ -27,7 +27,7 @@ int main() {
         Mat img_bgr = imread(image_path);
 
         // lab1_Clustering(img_bgr);
-        lab2_Mahalanobis();
+        lab4_Classification();
 
         spdlog::shutdown();
         return 0;
