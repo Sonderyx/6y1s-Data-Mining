@@ -165,8 +165,6 @@ void segmentImageKMeans(Mat& src, Mat& dst, int k, int max_iterations) {
  * @brief Runs the K-means clustering algorithm on the given image
  *
  * @param img_bgr The input image in BGR format
- * @param num_clusters The number of clusters to form
- * @param max_iterations The maximum number of iterations to run the algorithm
  */
 void lab1_Clustering(Mat& img_bgr) {
     logger.info("Lab 1: K-Means Clustering");

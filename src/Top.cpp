@@ -1,5 +1,6 @@
 #include "logger.hpp"
 #include "1_Clustering.hpp"
+#include "2_MovementEnergy.hpp"
 #include "4_Classification.hpp"
 
 using namespace std;
@@ -9,7 +10,7 @@ int main() {
     try {
         // string image_path = "../../resources/img/Orion.png";
         // string image_path = "../../resources/img/Shrek.png";
-        string image_path = "../../resources/img/Lena 21.png";
+        // string image_path = "../../resources/img/Lena 21.png";
         // string image_path = "../../resources/img/Spirit.jpg";
         // string image_path = "../../resources/img/Lena 70.jpg";
         // string image_path = "../../resources/img/Berserk.jpg";
@@ -23,11 +24,16 @@ int main() {
         // string image_path = "../../resources/img/test.jpg";
         // string image_path = "../../resources/img/Anime.jpg";
 
+        string image_path = "../../resources/img/Car1.png";
+        string image_path2 = "../../resources/img/Car2.png";
+
         init_logger();
         Mat img_bgr = imread(image_path);
+        Mat img_bgr2 = imread(image_path2);
 
         // lab1_Clustering(img_bgr);
-        lab4_Classification();
+        lab2_MovementEnergy(img_bgr, img_bgr2);
+        // lab4_Classification();
 
         spdlog::shutdown();
         return 0;
