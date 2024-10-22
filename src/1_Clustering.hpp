@@ -168,7 +168,7 @@ void segmentImageKMeans(Mat& src, Mat& dst, int k, int max_iterations) {
  */
 void lab1_Clustering(Mat& img_bgr) {
     logger.info("Lab 1: K-Means Clustering");
-    string output_path = "output img/Lab 1 clustering/";
+    string output_path = "output/Lab 1 clustering/";
 
     // Resize the image
     resize(img_bgr, img_bgr, img_bgr.size() / 2);

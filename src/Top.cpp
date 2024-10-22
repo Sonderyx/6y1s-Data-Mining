@@ -28,6 +28,16 @@ int main() {
         string image_path2 = "../../resources/img/Car2.png";
 
         init_logger();
+
+        string output_path = "output/";
+        // создаём папку для выходных изображений
+        if (_access(output_path.c_str(), 0) != 0)
+            if (_mkdir(output_path.c_str()) == -1) {
+                logger.error("Failed to create directory: {}", output_path);
+                return 1;
+                }
+            logger.info("Created directory: {}", output_path);
+
         Mat img_bgr = imread(image_path);
         Mat img_bgr2 = imread(image_path2);
 
