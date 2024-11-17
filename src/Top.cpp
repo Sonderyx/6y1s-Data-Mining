@@ -1,7 +1,9 @@
 #include "logger.hpp"
 #include "1_Clustering.hpp"
-#include "2_MovementEnergy.hpp"
+// #include "2_MovementEnergy.hpp"
 #include "4_Classification.hpp"
+#include "3_MotionVector.hpp"
+#include "3_MotionVectorVideo.hpp"
 
 using namespace std;
 using namespace cv;
@@ -24,15 +26,30 @@ int main() {
         // string image_path = "../../resources/img/test.jpg";
         // string image_path = "../../resources/img/Anime.jpg";
 
-        string image_path = "../../resources/img/Car1.png";
-        string image_path2 = "../../resources/img/Car2.png";
-
         init_logger();
+
+        // string videoSourceURL = "rtsp://1701954d6d07.entrypoint.cloud.wowza.com:1935/app-m75436g0/27122ffc_stream2";
+        // string videoSourceURL = "rtsp://170.93.143.139/rtplive/470011e600ef003a004ee33696235daa";
+        // string videoSourceURL = "rtsp://rtspstream.com/parking";
+        // string videoSourceURL = "rtsp://62.109.19.230:554/iloveyou";
+        // string videoSourceURL = "rtsp://rtspstream:e03758124d6f6fb0fbd4c2aaf36a3a7c@zephyr.rtsp.stream/movie";
+        // string videoSourceURL = "rtsp://localhost:8554/newsky";
+        // string videoSourceURL = "http://gifted-satoshi.192-185-7-210.plesk.page.192-185-7-210.hgws27.hgwin.temp.domains/api/ProveAttachmentApi/open-prove-attachment/765b0ad0-20c5-4a99-f798-08dcef7f61b1";
+        // string videoSourceURL = "C:/Users/David Polis/Downloads/Video/Test.ts";
+
+        string videoSourceURL = "../../resources/video/WebStream4.ts";
+
+        processVideoStream(videoSourceURL);
+
+        string image_path = "../../resources/img/164.jpeg";
+        string image_path2 = "../../resources/img/168.jpeg";
+
         Mat img_bgr = imread(image_path);
         Mat img_bgr2 = imread(image_path2);
 
         // lab1_Clustering(img_bgr);
-        lab2_MovementEnergy(img_bgr, img_bgr2);
+        // lab2_MovementEnergy(img_bgr, img_bgr2);
+        lab3_MotionVector(img_bgr, img_bgr2);
         // lab4_Classification();
 
         spdlog::shutdown();

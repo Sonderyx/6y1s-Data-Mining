@@ -1,0 +1,438 @@
+#ifndef MOTIONVECTOR_H
+#define MOTIONVECTOR_H
+
+#include <vector>
+#include <opencv2/opencv.hpp>
+#include "logger.hpp"
+
+using namespace cv;
+using namespace std;
+
+// Structure to store motion vectors
+struct MotionVector {
+    Point2f start;
+    Point2f end;
+    float magnitude;
+};
+
+class Image {
+public:
+    Mat bgr1;
+    Mat bgr2;
+
+    Mat gray1;
+    Mat gray2;
+
+    int blockSize;
+
+    Mat motionVectorImageOrig;
+    Mat motionVectorImageFiltered;
+
+    vector<vector<MotionVector>> motionVectorsOrig;
+    vector<vector<MotionVector>> motionVectorsFiltered;
+
+    vector<vector<int>> labels;
+
+    Mat clusterVisualization;
+};
+
+// void computeMotionVectors(const Mat& prevFrame, const Mat& currFrame, vector<vector<MotionVector>>& motionVectorsGrid, int blockSize) {
+//     logger.info("Computing motion vectors using MAD as the cost function");
+
+//     // Проверяем размеры входных кадров
+//     if (prevFrame.size() != currFrame.size()) {
+//         throw invalid_argument("Frames must have the same size.");
+//     }
+
+//     int rows = prevFrame.rows / blockSize;
+//     int cols = prevFrame.cols / blockSize;
+
+//     // Инициализируем двумерный вектор сеткой блоков
+//     motionVectorsGrid.resize(rows, vector<MotionVector>(cols));
+
+//     for (int i = 0; i < rows; i++) {
+//         for (int j = 0; j < cols; j++) {
+//             // Координаты текущего блока
+//             int x = j * blockSize;
+//             int y = i * blockSize;
+
+//             Rect blockROI(x, y, blockSize, blockSize);
+
+//             // Текущий блок из текущего кадра
+//             Mat currBlock = currFrame(blockROI);
+
+//             // Задаём область поиска (обычно чуть больше текущего блока)
+//             int searchRadius = blockSize;
+//             int searchX = max(0, x - searchRadius);
+//             int searchY = max(0, y - searchRadius);
+//             int searchWidth = min(blockSize + 2 * searchRadius, currFrame.cols - searchX);
+//             int searchHeight = min(blockSize + 2 * searchRadius, currFrame.rows - searchY);
+
+//             Rect searchROI(searchX, searchY, searchWidth, searchHeight);
+//             Mat searchArea = prevFrame(searchROI);
+
+//             // Переменные для отслеживания минимального MAD и смещения
+//             double minMAD = DBL_MAX;
+//             Point2f bestOffset(0, 0);
+
+//             // Проходим по всем возможным смещениям в области поиска
+//             for (int dy = 0; dy <= searchArea.rows - blockSize; dy++) {
+//                 for (int dx = 0; dx <= searchArea.cols - blockSize; dx++) {
+//                     Rect candidateROI(dx, dy, blockSize, blockSize);
+//                     Mat candidateBlock = searchArea(candidateROI);
+
+//                     // Вычисляем MAD
+//                     Mat diff;
+//                     absdiff(currBlock, candidateBlock, diff);
+//                     double mad = sum(diff)[0] / (blockSize * blockSize);
+
+//                     // Обновляем минимальное MAD
+//                     if (mad < minMAD) {
+//                         minMAD = mad;
+//                         bestOffset = Point2f(dx + searchX - x, dy + searchY - y);
+//                     }
+//                 }
+//             }
+
+//             // Вычисляем вектор движения
+//             Point2f startPoint(x + blockSize / 2.0, y + blockSize / 2.0);
+//             Point2f endPoint = startPoint + bestOffset;
+//             float magnitude = sqrt(bestOffset.x * bestOffset.x + bestOffset.y * bestOffset.y);
+
+//             // Сохраняем вектор движения в двумерную сетку
+//             motionVectorsGrid[i][j] = {startPoint, endPoint, magnitude};
+//         }
+//     }
+// }
+
+void computeMotionVectors(const Mat& prevFrame, const Mat& currFrame, vector<vector<MotionVector>>& motionVectorsGrid, int blockSize) {
+    // logger.info("Computing motion vectors using MAD as the cost function with parallel optimization");
+
+    // Проверяем размеры входных кадров
+    if (prevFrame.size() != currFrame.size()) {
+        throw invalid_argument("Frames must have the same size.");
+    }
+
+    // Размеры сетки блоков
+    int rows = prevFrame.rows / blockSize;
+    int cols = prevFrame.cols / blockSize;
+
+    // Инициализируем двумерный вектор сеткой блоков
+    motionVectorsGrid.resize(rows, vector<MotionVector>(cols));
+
+    // Радиус поиска
+    int searchRadius = blockSize; // Может быть изменён для точности/скорости
+
+    // Многопоточная обработка
+    cv::parallel_for_(cv::Range(0, rows * cols), [&](const cv::Range& range) {
+        for (int idx = range.start; idx < range.end; idx++) {
+            int i = idx / cols; // Индекс строки в сетке блоков
+            int j = idx % cols; // Индекс столбца в сетке блоков
+
+            // Координаты текущего блока
+            int x = j * blockSize;
+            int y = i * blockSize;
+
+            Rect blockROI(x, y, blockSize, blockSize);
+
+            // Текущий блок из текущего кадра
+            Mat currBlock = currFrame(blockROI);
+
+            // Задаём область поиска (чуть больше текущего блока)
+            int searchX = max(0, x - searchRadius);
+            int searchY = max(0, y - searchRadius);
+            int searchWidth = min(blockSize + 2 * searchRadius, currFrame.cols - searchX);
+            int searchHeight = min(blockSize + 2 * searchRadius, currFrame.rows - searchY);
+
+            Rect searchROI(searchX, searchY, searchWidth, searchHeight);
+            Mat searchArea = prevFrame(searchROI);
+
+            // Используем matchTemplate для ускорения поиска
+            Mat result;
+            matchTemplate(searchArea, currBlock, result, cv::TM_SQDIFF);
+
+            // Находим минимум (лучшее совпадение)
+            double minVal;
+            Point minLoc;
+            minMaxLoc(result, &minVal, nullptr, &minLoc, nullptr);
+
+            // Вычисляем смещение
+            Point2f bestOffset(minLoc.x + searchX - x, minLoc.y + searchY - y);
+
+            // Вычисляем вектор движения
+            Point2f startPoint(x + blockSize / 2.0, y + blockSize / 2.0);
+            Point2f endPoint = startPoint + bestOffset;
+            float magnitude = sqrt(bestOffset.x * bestOffset.x + bestOffset.y * bestOffset.y);
+
+            // Сохраняем вектор движения в сетку
+            motionVectorsGrid[i][j] = {startPoint, endPoint, magnitude};
+        }
+    });
+
+    // logger.info("Motion vector computation completed");
+}
+
+// Отрисовка motion vectors поверх изображения
+void drawMotionVectors(const Mat& src, Mat& dst, const vector<vector<MotionVector>>& motionVectorsGrid) {
+    // Копируем исходное изображение в выходное
+    src.copyTo(dst);
+
+    // Коэффициент масштаба для сокращения длины векторов
+    float scale = 2;
+    // Толщина стрелок
+    int thickness = 1;
+    // Цвет стрелок
+    Scalar color(0, 255, 0); // Зелёный цвет
+
+    // Проходим по всей сетке векторов движения
+    for (const auto& row : motionVectorsGrid) {
+        for (const auto& mv : row) {
+            // Вычисляем масштабированный конец вектора
+            Point2f scaledEnd = mv.start + scale * (mv.end - mv.start);
+            // Рисуем стрелку
+            // arrowedLine(dst, mv.start, scaledEnd, color, thickness, LINE_AA);
+            arrowedLine(dst, scaledEnd, mv.start, color, thickness, LINE_AA); // почему-то надо наоборот
+        }
+    }
+
+    // logger.info("Motion vectors drawn with scaling.");
+}
+
+void recursiveMedianFilter(const vector<vector<MotionVector>>& srcVectors, vector<vector<MotionVector>>& dstVectors, int kernelSize = 3) {
+    // logger.info("Starting recursive median filter with kernel size: " + to_string(kernelSize));
+
+    int rows = srcVectors.size();
+    int cols = srcVectors[0].size();
+
+    // Инициализация результирующего вектора
+    dstVectors = srcVectors;
+
+    // Проходим по всем векторным элементам сетки
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            const MotionVector& current = srcVectors[i][j];
+
+            // Собираем соседние векторы в окне kernelSize x kernelSize
+            vector<Point2f> neighbors;
+            for (int di = -kernelSize / 2; di <= kernelSize / 2; ++di) {
+                for (int dj = -kernelSize / 2; dj <= kernelSize / 2; ++dj) {
+                    int ni = i + di;
+                    int nj = j + dj;
+
+                    // Проверяем, что сосед находится в пределах сетки
+                    if (ni >= 0 && ni < rows && nj >= 0 && nj < cols) {
+                        const MotionVector& neighbor = srcVectors[ni][nj];
+                        // Добавляем ненулевые векторы
+                        if (neighbor.magnitude > 0) {
+                            neighbors.push_back(neighbor.end - neighbor.start);
+                        }
+                    }
+                }
+            }
+
+            // Если есть соседи, находим векторную медиану
+            if (!neighbors.empty()) {
+                Point2f medianVector = current.end - current.start;
+                float minSumDistance = FLT_MAX;
+
+                for (const auto& candidate : neighbors) {
+                    float sumDistance = 0;
+                    for (const auto& neighbor : neighbors) {
+                        sumDistance += norm(candidate - neighbor); // Норма L2
+                    }
+
+                    // Обновляем медиану, если сумма расстояний меньше
+                    if (sumDistance < minSumDistance) {
+                        minSumDistance = sumDistance;
+                        medianVector = candidate;
+                    }
+                }
+
+                // Обновляем вектор движения в результирующем массиве
+                dstVectors[i][j].end = dstVectors[i][j].start + medianVector;
+                dstVectors[i][j].magnitude = norm(medianVector); // Пересчитываем величину
+            }
+        }
+    }
+
+    // logger.info("Recursive median filter completed.");
+}
+
+// Function to cluster motion vectors for segmentation
+void clusterMotionVectors(const vector<vector<MotionVector>>& motionVectorsGrid, vector<vector<int>>& labels, float angleThreshold = 30.0f) {
+    // logger.info("Starting clustering of motion vectors...");
+
+    int rows = motionVectorsGrid.size();
+    int cols = motionVectorsGrid[0].size();
+
+    // Инициализируем метки, -1 означает отсутствие метки
+    labels = vector<vector<int>>(rows, vector<int>(cols, -1));
+    int currentLabel = 0; // Начальная метка
+
+    // Функция для проверки сонаправленности двух векторов
+    auto areVectorsAligned = [&](const MotionVector& a, const MotionVector& b) -> bool {
+        Point2f vecA = a.end - a.start;
+        Point2f vecB = b.end - b.start;
+
+        float dotProduct = vecA.x * vecB.x + vecA.y * vecB.y; // Скалярное произведение
+        float magnitudeA = norm(vecA);
+        float magnitudeB = norm(vecB);
+
+        if (magnitudeA == 0 || magnitudeB == 0) return false;
+
+        // Угол между векторами
+        float cosTheta = dotProduct / (magnitudeA * magnitudeB);
+        float angle = acos(cosTheta) * 180.0 / CV_PI; // Угол в градусах
+
+        return angle <= angleThreshold; // Возвращаем true, если угол <= порога
+    };
+
+    // Обход всех блоков изображения
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            const MotionVector& mv = motionVectorsGrid[i][j];
+
+            // Пропускаем блоки с нулевым вектором
+            if (mv.magnitude == 0) continue;
+
+            // Если у блока еще нет метки, создаем новую
+            if (labels[i][j] == -1) {
+                labels[i][j] = currentLabel;
+                // logger.info("Assigning new label: " + to_string(currentLabel) + " to block (" + to_string(i) + ", " + to_string(j) + ")");
+
+                // Очередь для обработки соседей
+                queue<pair<int, int>> toProcess;
+                toProcess.push({i, j});
+
+                while (!toProcess.empty()) {
+                    auto [ci, cj] = toProcess.front();
+                    toProcess.pop();
+
+                    // Проверяем 8 соседей
+                    for (int di = -1; di <= 1; ++di) {
+                        for (int dj = -1; dj <= 1; ++dj) {
+                            if (di == 0 && dj == 0) continue; // Пропускаем сам блок
+
+                            int ni = ci + di;
+                            int nj = cj + dj;
+
+                            // Проверяем границы
+                            if (ni >= 0 && ni < rows && nj >= 0 && nj < cols) {
+                                const MotionVector& neighbor = motionVectorsGrid[ni][nj];
+
+                                // Проверяем условия: ненулевой вектор, еще не размечен, сонаправлен
+                                if (neighbor.magnitude > 0 && labels[ni][nj] == -1 && areVectorsAligned(motionVectorsGrid[ci][cj], neighbor)) {
+                                    labels[ni][nj] = currentLabel;
+                                    toProcess.push({ni, nj}); // Добавляем соседа в очередь
+                                    // logger.info("Assigning label: " + to_string(currentLabel) + " to neighbor (" + to_string(ni) + ", " + to_string(nj) + ")");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Увеличиваем номер текущей метки
+                currentLabel++;
+            }
+        }
+    }
+
+    // logger.info("Clustering completed. Total clusters: " + to_string(currentLabel));
+}
+
+void visualizeClusterContours(const Mat& src, Mat& dst, const vector<vector<int>>& labels, int blockSize) {
+    // logger.info("Visualizing cluster contours with only external sides of cluster boundaries...");
+
+    // Копируем исходное изображение
+    src.copyTo(dst);
+
+    // Случайные цвета для кластеров
+    map<int, Scalar> clusterColors;
+    RNG rng(12345); // Генератор случайных чисел для устойчивого выбора цветов
+
+    int rows = labels.size();
+    int cols = labels[0].size();
+
+    // Назначаем случайный цвет для каждого кластера
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            int label = labels[i][j];
+            if (label != -1 && clusterColors.find(label) == clusterColors.end()) {
+                clusterColors[label] = Scalar(rng.uniform(0, 256), rng.uniform(0, 256), rng.uniform(0, 256));
+            }
+        }
+    }
+
+    // Обход всех блоков для нахождения внешних границ кластеров
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            int label = labels[i][j];
+            if (label == -1) continue; // Пропускаем блоки, не принадлежащие кластеру
+
+            Point topLeft(j * blockSize, i * blockSize);                   // Верхний левый угол блока
+            Point bottomRight((j + 1) * blockSize - 1, (i + 1) * blockSize - 1); // Нижний правый угол блока
+
+            // Проверяем внешние стороны блока
+            if (i == 0 || labels[i - 1][j] != label) {
+                // Верхняя сторона
+                line(dst, topLeft, Point(bottomRight.x, topLeft.y), clusterColors[label], 2);
+            }
+            if (i == rows - 1 || labels[i + 1][j] != label) {
+                // Нижняя сторона
+                line(dst, Point(topLeft.x, bottomRight.y), bottomRight, clusterColors[label], 2);
+            }
+            if (j == 0 || labels[i][j - 1] != label) {
+                // Левая сторона
+                line(dst, topLeft, Point(topLeft.x, bottomRight.y), clusterColors[label], 2);
+            }
+            if (j == cols - 1 || labels[i][j + 1] != label) {
+                // Правая сторона
+                line(dst, Point(bottomRight.x, topLeft.y), bottomRight, clusterColors[label], 2);
+            }
+        }
+    }
+
+    // logger.info("Cluster contour visualization completed.");
+}
+
+// Main lab function to implement the full workflow
+void lab3_MotionVector(const Mat& img_bgr1, const Mat& img_bgr2) {
+    logger.info("Lab 3: Motion Vectors");
+    Image img;
+    int scaleFactor = 2;
+    resize(img_bgr1, img.bgr1, Size(img_bgr1.cols / scaleFactor, img_bgr1.rows / scaleFactor));
+    resize(img_bgr2, img.bgr2, Size(img_bgr1.cols / scaleFactor, img_bgr1.rows / scaleFactor));
+    // img.bgr2 = img_bgr2.clone();
+    imshow("img bgr 1", img.bgr1);
+    imshow("img bgr 2", img.bgr2);
+
+    cvtColor(img.bgr1, img.gray1, COLOR_BGR2GRAY);
+    cvtColor(img.bgr2, img.gray2, COLOR_BGR2GRAY);
+
+    // Compute motion vectors
+    img.blockSize = 16;
+    computeMotionVectors(img.gray1, img.gray2, img.motionVectorsOrig, img.blockSize);
+
+    // Display original vectors
+    drawMotionVectors(img.bgr2, img.motionVectorImageOrig, img.motionVectorsOrig);
+    imshow("Original Motion Vectors", img.motionVectorImageOrig);
+
+    // Filter motion vectors
+    // recursiveMedianFilter(img.motionVectors, img.gray2.cols, img.gray2.rows, 3);
+    recursiveMedianFilter(img.motionVectorsOrig, img.motionVectorsFiltered, 3);
+
+    // Display filtered vectors
+    drawMotionVectors(img.bgr2, img.motionVectorImageFiltered, img.motionVectorsFiltered);
+    imshow("Filtered Motion Vectors", img.motionVectorImageFiltered);
+
+    // Create segmentation mask
+    Mat segmentationMask = Mat::zeros(img.gray1.size(), CV_8UC1);
+    clusterMotionVectors(img.motionVectorsFiltered, img.labels, 90.0F);
+
+    visualizeClusterContours(img.bgr2, img.clusterVisualization, img.labels, img.blockSize);
+    imshow("Segmentation", img.clusterVisualization);
+
+    waitKey(0);
+}
+
+#endif // MOTIONVECTOR_H
