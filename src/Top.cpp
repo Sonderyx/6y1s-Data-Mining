@@ -28,6 +28,16 @@ int main() {
 
         init_logger();
 
+        string output_path = "output/";
+        // создаём папку для выходных изображений
+        if (_access(output_path.c_str(), 0) != 0)
+            if (_mkdir(output_path.c_str()) == -1) {
+                logger.error("Failed to create directory: {}", output_path);
+                return 1;
+                }
+            logger.info("Created directory: {}", output_path);
+
+
         // string videoSourceURL = "rtsp://1701954d6d07.entrypoint.cloud.wowza.com:1935/app-m75436g0/27122ffc_stream2";
         // string videoSourceURL = "rtsp://170.93.143.139/rtplive/470011e600ef003a004ee33696235daa";
         // string videoSourceURL = "rtsp://rtspstream.com/parking";
