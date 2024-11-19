@@ -49,7 +49,7 @@ int main() {
 
         string videoSourceURL = "../../resources/video/WebStream4.ts";
 
-        processVideoStream(videoSourceURL);
+        processVideoStream(videoSourceURL, "test.avi");
 
         string image_path = "../../resources/img/164.jpeg";
         string image_path2 = "../../resources/img/168.jpeg";
