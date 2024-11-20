@@ -47,7 +47,7 @@ public:
  *            движения для каждого блока
  * @param[in] blockSize размер блока
  */
-void computeMotionVectors(const Mat& prevFrame, const Mat& currFrame, vector<vector<MotionVector>>& motionVectorsGrid, int blockSize) {
+void computeMotionVectors(const Mat& prevFrame, const Mat& currFrame, vector<vector<MotionVector>>& motionVectorsGrid, int blockSize, bool speedUp) {
     // Проверяем размеры входных кадров
     if (prevFrame.size() != currFrame.size()) {
         throw invalid_argument("Frames must have the same size.");
@@ -132,6 +132,54 @@ void computeMotionVectors(const Mat& prevFrame, const Mat& currFrame, vector<vec
     });
 
     // logger.info("Motion vector computation completed");
+}
+
+//------------------------------------------------------
+void computeMotionVectors(const Mat& prevFrame, const Mat& currFrame, vector<vector<MotionVector>>& motionVectorsGrid, int blockSize) {
+    logger.info("Computing motion vectors using MAD as the cost function");
+    if (prevFrame.size() != currFrame.size()) {
+        throw invalid_argument("Frames must have the same size.");
+    }
+    int rows = prevFrame.rows / blockSize;
+    int cols = prevFrame.cols / blockSize;
+    motionVectorsGrid.resize(rows, vector<MotionVector>(cols));
+
+    parallel_for_(cv::Range(0, rows), [&](const cv::Range& range) {
+        for (int i = range.start; i < range.end; i++) {
+            for (int j = 0; j < cols; j++) {
+                int x = j * blockSize;
+                int y = i * blockSize;
+                Rect blockROI(x, y, blockSize, blockSize);
+                Mat currBlock = currFrame(blockROI);
+                int searchRadius = blockSize;
+                int searchX = max(0, x - searchRadius);
+                int searchY = max(0, y - searchRadius);
+                int searchWidth = min(blockSize + 2 * searchRadius, currFrame.cols - searchX);
+                int searchHeight = min(blockSize + 2 * searchRadius, currFrame.rows - searchY);
+                Rect searchROI(searchX, searchY, searchWidth, searchHeight);
+                Mat searchArea = prevFrame(searchROI);
+                double minMAD = DBL_MAX;
+                Point2f bestOffset(0, 0);
+                for (int dy = 0; dy <= searchArea.rows - blockSize; dy++) {
+                    for (int dx = 0; dx <= searchArea.cols - blockSize; dx++) {
+                        Rect candidateROI(dx, dy, blockSize, blockSize);
+                        Mat candidateBlock = searchArea(candidateROI);
+                        Mat diff;
+                        absdiff(currBlock, candidateBlock, diff);
+                        double mad = sum(diff)[0] / (blockSize * blockSize);
+                        if (mad < minMAD) {
+                            minMAD = mad;
+                            bestOffset = Point2f(dx + searchX - x, dy + searchY - y);
+                        }
+                    }
+                }
+                Point2f startPoint(x + blockSize / 2.0, y + blockSize / 2.0);
+                Point2f endPoint = startPoint + bestOffset;
+                float magnitude = sqrt(bestOffset.x * bestOffset.x + bestOffset.y * bestOffset.y);
+                motionVectorsGrid[i][j] = {startPoint, endPoint, magnitude};
+            }
+        }
+    });
 }
 
 /**
@@ -462,6 +510,7 @@ void lab3_MotionVector(const Mat& img_bgr1, const Mat& img_bgr2) {
     // Compute motion vectors
     img.blockSize = 16;
     computeMotionVectors(img.gray1, img.gray2, img.motionVectorsOrig, img.blockSize);
+    // computeMotionVectors(img.gray1, img.gray2, img.motionVectorsOrig, img.blockSize, true);
 
     // Display original vectors
     drawMotionVectors(img.bgr2, img.motionVectorImageOrig, img.motionVectorsOrig);

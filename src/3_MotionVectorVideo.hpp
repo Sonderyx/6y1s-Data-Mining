@@ -68,7 +68,7 @@ void processVideoStream(const string& videoSourceURL, const string& outputVideoP
         cvtColor(currFrame, grayFrame, COLOR_BGR2GRAY);
 
         // Вычисляем векторы движения
-        computeMotionVectors(prevFrame, grayFrame, motionVectorsOrig, blockSize);
+        computeMotionVectors(prevFrame, grayFrame, motionVectorsOrig, blockSize, true);
 
         drawMotionVectors(currFrame, motionVectorImage, motionVectorsOrig);
 
