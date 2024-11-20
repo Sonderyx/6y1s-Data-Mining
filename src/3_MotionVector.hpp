@@ -134,48 +134,91 @@ void computeMotionVectors(const Mat& prevFrame, const Mat& currFrame, vector<vec
     // logger.info("Motion vector computation completed");
 }
 
-//------------------------------------------------------
+/**
+ * @brief Вычисление векторов движения между двумя кадрами с помощью MAD
+ *
+ * @param[in] prevFrame предыдущий кадр
+ * @param[in] currFrame текущий кадр
+ * @param[out] motionVectorsGrid двумерный вектор, содержащий векторы
+ *            движения для каждого блока
+ * @param[in] blockSize размер блока
+ */
 void computeMotionVectors(const Mat& prevFrame, const Mat& currFrame, vector<vector<MotionVector>>& motionVectorsGrid, int blockSize) {
-    logger.info("Computing motion vectors using MAD as the cost function");
+    logger.info("  motion vectors using MAD as the cost function");
+
+    // Проверяем размеры входных кадров
     if (prevFrame.size() != currFrame.size()) {
         throw invalid_argument("Frames must have the same size.");
     }
+
+    // Размеры сетки блоков
     int rows = prevFrame.rows / blockSize;
     int cols = prevFrame.cols / blockSize;
+
+    // Инициализируем двумерный вектор сеткой блоков
     motionVectorsGrid.resize(rows, vector<MotionVector>(cols));
 
-    parallel_for_(cv::Range(0, rows), [&](const cv::Range& range) {
+    // Многопоточная обработка
+    cv::parallel_for_(cv::Range(0, rows), [&](const cv::Range& range) {
         for (int i = range.start; i < range.end; i++) {
             for (int j = 0; j < cols; j++) {
                 int x = j * blockSize;
                 int y = i * blockSize;
+
+                // Координаты блока
                 Rect blockROI(x, y, blockSize, blockSize);
+
+                // Текущий блок из текущего кадра
                 Mat currBlock = currFrame(blockROI);
+
+                // Радиус поиска
                 int searchRadius = blockSize;
+
+                // Координаты области поиска
                 int searchX = max(0, x - searchRadius);
                 int searchY = max(0, y - searchRadius);
                 int searchWidth = min(blockSize + 2 * searchRadius, currFrame.cols - searchX);
                 int searchHeight = min(blockSize + 2 * searchRadius, currFrame.rows - searchY);
+
+                // Область поиска
                 Rect searchROI(searchX, searchY, searchWidth, searchHeight);
                 Mat searchArea = prevFrame(searchROI);
+
+                // Инициализируем лучшее смещение
                 double minMAD = DBL_MAX;
                 Point2f bestOffset(0, 0);
+
+                // Проходим по всем возможным блоках в области поиска
                 for (int dy = 0; dy <= searchArea.rows - blockSize; dy++) {
                     for (int dx = 0; dx <= searchArea.cols - blockSize; dx++) {
+                        // Координаты кандидата
                         Rect candidateROI(dx, dy, blockSize, blockSize);
+
+                        // Блок-кандидат
                         Mat candidateBlock = searchArea(candidateROI);
+
+                        // Вычисляем разницу между блоками
                         Mat diff;
                         absdiff(currBlock, candidateBlock, diff);
+
+                        // Вычисляем MAD
                         double mad = sum(diff)[0] / (blockSize * blockSize);
+
+                        // Если MAD меньше, чем текущий минимум, то
+                        // обновляем минимум и лучшее смещение
                         if (mad < minMAD) {
                             minMAD = mad;
                             bestOffset = Point2f(dx + searchX - x, dy + searchY - y);
                         }
                     }
                 }
+
+                // Вычисляем вектор движения
                 Point2f startPoint(x + blockSize / 2.0, y + blockSize / 2.0);
                 Point2f endPoint = startPoint + bestOffset;
                 float magnitude = sqrt(bestOffset.x * bestOffset.x + bestOffset.y * bestOffset.y);
+
+                // Сохраняем вектор движения в сетку
                 motionVectorsGrid[i][j] = {startPoint, endPoint, magnitude};
             }
         }
