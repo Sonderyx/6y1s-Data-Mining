@@ -263,76 +263,64 @@ void drawMotionVectors(const Mat& src, Mat& dst, const vector<vector<MotionVecto
 }
 
 /**
- * @brief Recursive median filter for motion vectors
+ * @brief Функция медианной фильтрации векторов движения
  *
- * Функция recursiveMedianFilter() реализует рекурсивный медианный фильтр
- * для векторов движения. Она проходит по всем векторным элементам
- * сетки, собирает соседние векторы в окне kernelSize x kernelSize, находит
- * векторную медиану и обновляет вектор движения в результирующем
- * массиве.
+ * Функция recursiveMedianFilter() выполняет медианную фильтрацию
+ * векторов движения. Она работает рекурсивно, то есть каждый раз
+ * применяется сама к себе, пока не будет достигнута остановка.
+ * Функция использует лямбду для вычисления медианного значения
+ * величины, а затем очищает векторы, у которых величина меньше
+ * медианы.
  *
- * @param[in] srcVectors Исходная сетка векторов движения
- * @param[out] dstVectors Результирующая сетка векторов движения
- * @param[in] kernelSize Размер окна (kernel) для фильтрации (по умолчанию 3)
+ * @param[in] srcVectors Исходный вектор векторов движения
+ * @param[out] dstVectors Выходной вектор векторов движения
+ * @param[in] kernelSize Размер ядра для сбора соседних значений
  */
-void recursiveMedianFilter(const vector<vector<MotionVector>>& srcVectors, vector<vector<MotionVector>>& dstVectors, int kernelSize = 3) {
-    // logger.info("   recursive median filter      kernel size: " + to_string(kernelSize));
-
+void recursiveMedianFilter(const vector<vector<MotionVector>>& srcVectors,
+                           vector<vector<MotionVector>>& dstVectors,
+                           int kernelSize = 3) {
     int rows = srcVectors.size();
     int cols = srcVectors[0].size();
 
-    // инициализация результирующего вектора
+    // Инициализация выходного вектора теми же значениями, что и в исходном
     dstVectors = srcVectors;
 
-    // проходим по всем векторным элементам сетки
+    int offset = kernelSize / 2;
+
+    // Лямбда для вычисления медианного значения величины
+    auto calculateMedianMagnitude = [](vector<float>& magnitudes) -> float {
+        // Вычисление медианы
+        size_t n = magnitudes.size() / 2;
+        nth_element(magnitudes.begin(), magnitudes.begin() + n, magnitudes.end());
+        return magnitudes[n];
+    };
+
+    // Применение фильтра
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
-            const MotionVector& current = srcVectors[i][j];
+            vector<float> magnitudes;
 
-            // собираем соседние векторы в окне kernelSize x kernelSize
-            vector<Point2f> neighbors;
-            for (int di = -kernelSize / 2; di <= kernelSize / 2; ++di) {
-                for (int dj = -kernelSize / 2; dj <= kernelSize / 2; ++dj) {
+            // Сбор значений величин в окрестности
+            for (int di = -offset; di <= offset; ++di) {
+                for (int dj = -offset; dj <= offset; ++dj) {
                     int ni = i + di;
                     int nj = j + dj;
 
-                    // проверяем, что сосед находится в пределах сетки
                     if (ni >= 0 && ni < rows && nj >= 0 && nj < cols) {
-                        const MotionVector& neighbor = srcVectors[ni][nj];
-                        // добавляем ненулевые векторы
-                        if (neighbor.magnitude > 0) {
-                            neighbors.push_back(neighbor.end - neighbor.start);
-                        }
+                        magnitudes.push_back(srcVectors[ni][nj].magnitude);
                     }
                 }
             }
 
-            // если есть соседи, находим векторную медиану
-            if (!neighbors.empty()) {
-                Point2f medianVector = current.end - current.start;
-                float minSumDistance = FLT_MAX;
+            // Вычисление медианы
+            float medianMagnitude = calculateMedianMagnitude(magnitudes);
 
-                for (const auto& candidate : neighbors) {
-                    float sumDistance = 0;
-                    for (const auto& neighbor : neighbors) {
-                        sumDistance += norm(candidate - neighbor); // Норма L2
-                    }
-
-                    // обновляем медиану, если сумма расстояний меньше
-                    if (sumDistance < minSumDistance) {
-                        minSumDistance = sumDistance;
-                        medianVector = candidate;
-                    }
-                }
-
-                // обновляем вектор движения в результирующем массиве
-                dstVectors[i][j].end = dstVectors[i][j].start + medianVector;
-                dstVectors[i][j].magnitude = norm(medianVector); // Пересчитываем величину
+            // Если величина меньше медианы, очищаем текущий вектор
+            if (srcVectors[i][j].magnitude < medianMagnitude) {
+                dstVectors[i][j] = {Point2f(0, 0), Point2f(0, 0), 0};
             }
         }
     }
-
-    // logger.info("Recursive median filter completed.");
 }
 
 // Функция для кластеризации векторов движения для сегментации
@@ -563,7 +551,7 @@ void lab3_MotionVector(const Mat& img_bgr1, const Mat& img_bgr2) {
     imwrite(img.output_path + "Original Motion Vectors.png", img.motionVectorImageOrig);
 
     // Filter motion vectors
-    recursiveMedianFilter(img.motionVectorsOrig, img.motionVectorsFiltered, 3);
+    recursiveMedianFilter(img.motionVectorsOrig, img.motionVectorsFiltered, 5);
 
     // Display filtered vectors
     drawMotionVectors(img.bgr2, img.motionVectorImageFiltered, img.motionVectorsFiltered);
