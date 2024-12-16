@@ -89,6 +89,10 @@
         "valarray": "cpp",
         "variant": "cpp",
         "bitset": "cpp",
-        "source_location": "cpp"
+        "source_location": "cpp",
+        "cfenv": "cpp",
+        "cinttypes": "cpp",
+        "coroutine": "cpp",
+        "typeindex": "cpp"
     }
 }

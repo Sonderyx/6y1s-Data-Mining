@@ -1,9 +1,10 @@
 #include "logger.hpp"
-#include "1_Clustering.hpp"
+// #include "1_Clustering.hpp"
 // #include "2_MovementEnergy.hpp"
-#include "4_Classification.hpp"
-#include "3_MotionVector.hpp"
-#include "3_MotionVectorVideo.hpp"
+// #include "4_Classification.hpp"
+// #include "3_MotionVector.hpp"
+// #include "3_MotionVectorVideo.hpp"
+#include "5_Regression.hpp"
 
 using namespace std;
 using namespace cv;
@@ -47,20 +48,28 @@ int main() {
         // string videoSourceURL = "http://gifted-satoshi.192-185-7-210.plesk.page.192-185-7-210.hgws27.hgwin.temp.domains/api/ProveAttachmentApi/open-prove-attachment/765b0ad0-20c5-4a99-f798-08dcef7f61b1";
         // string videoSourceURL = "C:/Users/David Polis/Downloads/Video/Test.ts";
 
-        string videoSourceURL = "../../resources/video/WebStream4.ts";
+        // string videoSourceURL = "../../resources/video/WebStream4.ts";
 
-        processVideoStream(videoSourceURL, "test.avi");
+        // processVideoStream(videoSourceURL, "test.avi");
 
-        string image_path = "../../resources/img/164.jpeg";
-        string image_path2 = "../../resources/img/168.jpeg";
 
-        Mat img_bgr = imread(image_path);
-        Mat img_bgr2 = imread(image_path2);
+        // string image_path = "../../resources/img/164.jpeg";
+        // string image_path2 = "../../resources/img/168.jpeg";
+
+
+        // Mat img_bgr2 = imread(image_path2);
 
         // lab1_Clustering(img_bgr);
         // lab2_MovementEnergy(img_bgr, img_bgr2);
-        lab3_MotionVector(img_bgr, img_bgr2);
+        // lab3_MotionVector(img_bgr, img_bgr2);
         // lab4_Classification();
+
+
+        string image_path = "../../resources/img/Chromatic aberration chess.png";
+        // string image_path = "../../resources/img/Chromatic aberration chess 2.bmp";
+        Mat img_bgr = imread(image_path);
+        // lab5_Regression(img_bgr, 1, 8, 20);
+        lab5_Regression(img_bgr, 1, 16, 40);
 
         spdlog::shutdown();
         return 0;

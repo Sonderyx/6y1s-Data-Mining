@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <opencv2/opencv.hpp>
+#include <io.h>
+#include <direct.h>
 #include "logger.hpp"
 
 using namespace cv;
