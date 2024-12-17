@@ -17,7 +17,7 @@ struct MotionVector {
     float magnitude;
 };
 
-class Image {
+class Image3 {
 public:
     string output_path = "output/Lab 3 Movement Vector/";
 
@@ -520,7 +520,7 @@ void visualizeClusterContours(const Mat& src, Mat& dst, const vector<vector<int>
 // Main lab function to implement the full workflow
 void lab3_MotionVector(const Mat& img_bgr1, const Mat& img_bgr2) {
     logger.info("Lab 3: Motion Vectors");
-    Image img;
+    Image3 img;
 
     // создаём папку для выходных изображений
     if (_access(img.output_path.c_str(), 0) != 0) {

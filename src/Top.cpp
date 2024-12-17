@@ -1,10 +1,11 @@
 #include "logger.hpp"
-// #include "1_Clustering.hpp"
-// #include "2_MovementEnergy.hpp"
-// #include "4_Classification.hpp"
+#include "1_Clustering.hpp"
+#include "2_MovementEnergy.hpp"
+#include "4_Classification.hpp"
 #include "3_MotionVector.hpp"
 #include "3_MotionVectorVideo.hpp"
-// #include "5_Regression.hpp"
+#include "5_Regression.hpp"
+#include "6_Panorama.hpp"
 
 using namespace std;
 using namespace cv;
@@ -26,6 +27,7 @@ int main() {
         // string image_path = "../../resources/img/Levitan.jpg";
         // string image_path = "../../resources/img/test.jpg";
         // string image_path = "../../resources/img/Anime.jpg";
+        string image_path = "../../resources/img/Greece.jpg";
 
         init_logger();
 
@@ -51,16 +53,17 @@ int main() {
         // string videoSourceURL = "../../resources/video/WebStream4.ts";
         // processVideoStream(videoSourceURL, "test.avi");
 
-        string image_path = "../../resources/img/164.jpeg";
-        string image_path2 = "../../resources/img/168.jpeg";
+        // string image_path = "../../resources/img/164.jpeg";
+        // string image_path2 = "../../resources/img/168.jpeg";
 
         Mat img_bgr = imread(image_path);
-        Mat img_bgr2 = imread(image_path2);
+        // Mat img_bgr2 = imread(image_path2);
 
         // lab1_Clustering(img_bgr);
         // lab2_MovementEnergy(img_bgr, img_bgr2);
-        lab3_MotionVector(img_bgr, img_bgr2);
+        // lab3_MotionVector(img_bgr, img_bgr2);
         // lab4_Classification();
+        lab6_Panorama(img_bgr);
 
 
         // string image_path = "../../resources/img/Chromatic aberration chess.png";

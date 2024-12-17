@@ -10,7 +10,7 @@
 using namespace cv;
 using namespace std;
 
-class Image {
+class Image2 {
 public:
     string output_path = "output/Lab 2 Movement Energy/";
 
@@ -124,7 +124,7 @@ void findProjections(const vector<int>& proj, vector<pair<int, int>>& segments, 
  * @param horizontalProj Вектор значений горизонтальной проекции
  * @param verticalProj Вектор значений вертикальной проекции
  */
-void histShow(const Image& img, const vector<int>& horizontalProj, const vector<int>& verticalProj) {
+void histShow(const Image2& img, const vector<int>& horizontalProj, const vector<int>& verticalProj) {
     int hist_height = 200; // Высота гистограммы
 
     // Создание черных изображений для гистограмм
@@ -175,7 +175,7 @@ void histShow(const Image& img, const vector<int>& horizontalProj, const vector<
  *
  * @return Вектор прямоугольников, образующих сегменты изображения
  */
-vector<Rect> segmentImage(const Image& img) {
+vector<Rect> segmentImage(const Image2& img) {
     // Векторы для хранения проекций
     // vector<int> horizontalProj, verticalProj;
     vector<int> horizontalProj = img.horizontalProj;
@@ -214,7 +214,7 @@ vector<Rect> segmentImage(const Image& img) {
  *
  * @param img Структура Image, содержащая параметры изображения
  */
-void updateSegmentedImage(const Image& img) {
+void updateSegmentedImage(const Image2& img) {
     // Клонируем второе изображение для последующего редактирования
     Mat result = img.bgr2.clone();
 
@@ -231,12 +231,12 @@ void updateSegmentedImage(const Image& img) {
 }
 
 void onMinLengthChange(int, void* userdata) {
-    Image* img = static_cast<Image*>(userdata);
+    Image2* img = static_cast<Image2*>(userdata);
     updateSegmentedImage(*img);
 }
 
 void onThresholdChange(int, void* userdata) {
-    Image* img = static_cast<Image*>(userdata);
+    Image2* img = static_cast<Image2*>(userdata);
     updateSegmentedImage(*img);
 }
 
@@ -255,7 +255,7 @@ void onThresholdChange(int, void* userdata) {
  */
 void lab2_MovementEnergy(Mat& img_bgr1, Mat& img_bgr2) {
     logger.info("Lab 2: Movement Energy");
-    Image img;
+    Image2 img;
 
     // создаём папку для выходных изображений
     if (_access(img.output_path.c_str(), 0) != 0) {
